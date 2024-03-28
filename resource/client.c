@@ -1,50 +1,45 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   client.c                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: marvin <marvin@student.42.fr>              +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/28 10:30:07 by marvin            #+#    #+#             */
-/*   Updated: 2024/03/28 10:30:07 by marvin           ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
 
-#include <stdio.h>
-#include <unistd.h>
 #include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-void send_bit(int pid, char c, int bit_index)
+void my_send_char(int server_pid, char i)
 {
-    if (bit_index < 0) return;
+    int bit;
 
-    if ((c >> bit_index) & 1)
-        kill(pid, SIGUSR2);
-    else
-        kill(pid, SIGUSR1);
-
-    usleep(10000);
-    send_bit(pid, c, bit_index - 1);
+    bit = 128;
+    while (bit > 0)
+    {
+        if (i & bit)
+            kill(server_pid, SIGUSR2);
+        else
+            kill(server_pid, SIGUSR1);
+        bit /= 2;
+        usleep(100);
+    }
 }
 
-void send_char(int pid, char c)
+void my_send_str(int server_pid, char *str)
 {
-    send_bit(pid, c, 7);
+    while (*str)
+    {
+        my_send_char(server_pid, *str);
+        str++;
+    }
+    my_send_char(server_pid, '\0');
 }
 
 int main(int argc, char *argv[])
 {
-    if (argc != 3) {
-        printf("Usage: %s [PID] [STRING]\n", argv[0]);
-        return 1;
+    int server_pid;
+
+    if (argc != 3)
+    {
+        printf("Usage: %s <server_pid> <string>\n", argv[0]);
+        return (1);
     }
-
-    int server_pid = atoi(argv[1]);
-    char *message = argv[2];
-
-    while (*message) {
-        send_char(server_pid, *message++);
-    }
-
-    return 0;
+    server_pid = atoi(argv[1]);
+    my_send_str(server_pid, argv[2]);
+    return (0);
 }
