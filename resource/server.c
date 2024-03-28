@@ -1,50 +1,50 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   server.c                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: marvin <marvin@student.42.fr>              +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/03/28 10:30:26 by marvin            #+#    #+#             */
-/*   Updated: 2024/03/28 10:30:26 by marvin           ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
-#include <stdio.h>
-#include <unistd.h>
 #include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-volatile sig_atomic_t g_received_char = 0;
-
-void sigusr_handler(int signum)
+void new_signal_handler(int sig)
 {
-    if (signum == SIGUSR1)
-        g_received_char <<= 1;
-    else if (signum == SIGUSR2)
-        g_received_char = (g_received_char << 1) | 1;
+    static int received_bit_count = 0;
+    static char received_char = 0;
+
+    if (sig == SIGUSR1 || sig == SIGUSR2)
+    {
+        received_char |= (sig == SIGUSR2) << (7 - received_bit_count);
+        received_bit_count++;
+        if (received_bit_count == 8)
+        {
+            if (received_char == '\0')
+            {
+                fflush(stdout);
+                write(1, "\n", 1);
+                received_bit_count = 0;
+                received_char = 0;
+            }
+            else
+            {
+                printf("%c", received_char);
+                received_bit_count = 0;
+                received_char = 0;
+            }
+        }
+    }
 }
 
-int main()
+int main(void)
 {
     struct sigaction sa;
-    sa.sa_handler = sigusr_handler;
-    sa.sa_flags = SA_RESTART;
-    sigemptyset(&sa.sa_mask);
 
-    if (sigaction(SIGUSR1, &sa, NULL) == -1 || sigaction(SIGUSR2, &sa, NULL) == -1)
-    {
-        perror("Error setting up signal handler");
-        return 1;
-    }
-
+    sa.sa_handler = new_signal_handler;
+    sa.sa_flags = 0;
+    sigaction(SIGUSR1, &sa, NULL);
+    sigaction(SIGUSR2, &sa, NULL);
     printf("Server PID: %d\n", getpid());
-
     while (1)
     {
-        pause();
-        putchar(g_received_char);
-        fflush(stdout);
+        usleep(100000);
     }
-
-    return 0;
+    return (0);
 }
+
