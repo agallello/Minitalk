@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror
-SRC_CLIENT = minitalk_client.c
-SRC_SERVER = minitalk_server.c
+SRC_CLIENT = client.c
+SRC_SERVER = server.c
 OBJ_CLIENT = $(SRC_CLIENT:.c=.o)
 OBJ_SERVER = $(SRC_SERVER:.c=.o)
 
